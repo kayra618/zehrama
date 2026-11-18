@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>Sana özel ❤️</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+  body {
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at center, #ffe6f0 0%, #f5c6da 100%);
+    font-family: Georgia, "Times New Roman", serif;
+    transition: background 3.5s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body.fade-to-black {
+    background: radial-gradient(circle at center, #14050c 0%, #000000 100%);
+  }
+
+  /* Sadece gerçek fare (mouse) bulunan cihazlarda sistem imlecini gizle */
+  @media (hover: hover) and (pointer: fine) {
+    html, body, button, a, * {
+      cursor: none !important;
+    }
+  }
+
+  /* Özel Kalp İmleci (Varsayılan olarak gizli, sadece masaüstünde aktif) */
+  .custom-cursor {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 24px;
+    height: 24px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+    transition: opacity 0.2s ease, transform 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease;
+    filter: drop-shadow(0 2px 6px rgba(217, 27, 92, 0.5));
+    will-change: transform, left, top;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .custom-cursor {
+      display: block;
+    }
+  }
+
+  .custom-cursor.visible {
+    opacity: 1;
+  }
+
+  .custom-cursor.clicking {
+    transform: translate(-50%, -50%) scale(0.78);
+  }
+
+  body.fade-to-black .custom-cursor {
+    filter: drop-shadow(0 0 10px rgba(255, 77, 134, 0.95));
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    isolation: isolate;
+  }
+
+  /* Arka Plan Yıldızları */
+  .stars {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 4s ease 1.5s;
+    pointer-events: none;
+    z-index: -1;
+  }
+  body.fade-to-black .stars { opacity: 1; }
+  .star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    animation: star-twinkle var(--dur) ease-in-out infinite;
+    animation-delay: var(--delay);
+  }
+
+  /* Başlangıç Alanı */
+  .intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    transition: opacity 2s ease, transform 2s ease;
+    z-index: 2;
+  }
+  .intro.hide {
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events: none;
+  }
+
+  .heart-wrapper {
+    position: relative;
+    display: grid;
+    place-items: center;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .pulse-ring {
+    position: absolute;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 40, 105, 0.35);
+    animation: ring-pulse 2s ease-out infinite;
+    pointer-events: none;
+  }
+
+  .tap-heart {
+    border: 0;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    font-size: clamp(100px, 24vw, 170px);
+    line-height: 1;
+    filter: drop-shadow(0 10px 25px rgba(255, 40, 105, 0.45));
+    animation: heartbeat 1.25s ease-in-out infinite;
+    -webkit-tap-highlight-color: transparent;
+    transition: filter 0.3s ease;
+  }
+  .tap-heart:active {
+    transform: scale(0.92);
+  }
+  .tap-heart:focus {
+    outline: none;
+  }
+
+  /* İlerleme Çubuğu ve Sayaç */
+  .progress-container {
+    width: 180px;
+    height: 6px;
+    background: rgba(122, 36, 69, 0.15);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff4d86, #d91b5c);
+    border-radius: 10px;
+    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .counter {
+    color: #7a2445;
+    font: 600 13px Arial, sans-serif;
+    letter-spacing: 0.15em;
+    transition: color 2s ease;
+  }
+  .mini-note {
+    height: 22px;
+    color: #9e2a55;
+    font-style: italic;
+    font-size: 16px;
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+  }
+
+  /* Tıklayınca Uçuşan Mini Kalpler */
+  .floating-heart {
+    position: absolute;
+    pointer-events: none;
+    font-size: 20px;
+    animation: float-up 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    z-index: 5;
+  }
+
+  /* Final Siyah Ekran Kalbi */
+  .black-heart {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: min(75vw, 360px);
+    opacity: 0;
+    transform: scale(0.4);
+    transition: opacity 3s ease 1s, transform 3.8s cubic-bezier(0.16, 1, 0.3, 1) 1s;
+    pointer-events: none;
+  }
+  .black-heart.show {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .svg-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    transform-origin: center center;
+  }
+
+  .black-heart.show .svg-container {
+    animation: neon-heartbeat 1.4s ease-in-out 5.4s infinite;
+  }
+
+  .neon-aura {
+    position: absolute;
+    width: 65%;
+    height: 65%;
+    background: radial-gradient(circle, rgba(255, 60, 130, 0.25) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: aura-breathe 4s ease-in-out infinite alternate;
+  }
+
+  .black-heart svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    z-index: 2;
+  }
+
+  .heart-outline {
+    fill: rgba(255, 77, 134, 0.04);
+    stroke: #ff4d86;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    filter: drop-shadow(0 0 10px rgba(255, 60, 130, 0.85));
+  }
+
+  .heart-inner-line {
+    fill: none;
+    stroke: rgba(255, 160, 195, 0.45);
+    stroke-width: 1;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+
+  .black-heart.show .heart-outline {
+    animation: draw-heart 4.5s ease forwards 1.2s,
+               soft-glow 2.5s ease-in-out 5.7s infinite alternate;
+  }
+  .black-heart.show .heart-inner-line {
+    animation: draw-heart 4.8s ease forwards 1.6s;
+  }
+
+  /* Parıltılar */
+  .sparkle {
+    position: absolute;
+    color: #ff9ebc;
+    font-size: 20px;
+    opacity: 0;
+    animation: twinkle 3s ease-in-out infinite;
+    text-shadow: 0 0 8px #ff4d86;
+  }
+  .s1 { top: 8%; left: 16%; animation-delay: 0.2s; }
+  .s2 { top: 18%; right: 12%; animation-delay: 1.1s; font-size: 15px; }
+  .s3 { bottom: 22%; left: 14%; animation-delay: 1.8s; font-size: 16px; }
+  .s4 { bottom: 15%; right: 18%; animation-delay: 0.7s; }
+  .s5 { top: 45%; left: 5%; animation-delay: 2.3s; font-size: 14px; }
+  .s6 { top: 42%; right: 6%; animation-delay: 1.5s; font-size: 18px; }
+
+  /* Animasyonlar */
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    14% { transform: scale(1.14); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.09); }
+    56% { transform: scale(1); }
+  }
+  @keyframes neon-heartbeat {
+    0%, 100% { transform: scale(1); }
+    14% { transform: scale(1.08); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.05); }
+    56% { transform: scale(1); }
+  }
+  @keyframes ring-pulse {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(2.1); opacity: 0; }
+  }
+  @keyframes float-up {
+    0% { transform: translate(0, 0) scale(0.6) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(1.3) rotate(var(--rot)); opacity: 0; }
+  }
+  @keyframes draw-heart { to { stroke-dashoffset: 0; } }
+  @keyframes soft-glow {
+    from { filter: drop-shadow(0 0 6px rgba(255, 60, 130, 0.5)); }
+    to { filter: drop-shadow(0 0 22px rgba(255, 60, 130, 1)); }
+  }
+  @keyframes aura-breathe {
+    from { transform: scale(0.9); opacity: 0.5; }
+    to { transform: scale(1.15); opacity: 0.9; }
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.25) rotate(30deg); }
+  }
+  @keyframes star-twinkle {
+    0%, 100% { opacity: 0.15; transform: scale(0.8); }
+    50% { opacity: 0.85; transform: scale(1.2); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Özel Kalp Fare İmleci -->
+<div class="custom-cursor" id="customCursor" aria-hidden="true">
+  <svg viewBox="0 0 32 32" width="100%" height="100%">
+    <path fill="#ff2a6d" stroke="#ffffff" stroke-width="1.5"
+      d="M16 28.5C16 28.5 3 20.2 3 11.2C3 6.8 6.4 3.5 10.6 3.5C13.1 3.5 15.1 4.8 16 6.8C16.9 4.8 18.9 3.5 21.4 3.5C25.6 3.5 29 6.8 29 11.2C29 20.2 16 28.5 16 28.5Z"/>
+  </svg>
+</div>
+
+<main class="stage" id="stage">
+  <div class="stars" id="stars"></div>
+
+  <section class="intro" id="intro">
+    <div class="heart-wrapper" id="heartWrapper">
+      <div class="pulse-ring"></div>
+      <button class="tap-heart" id="tapHeart" aria-label="Kalbe tıkla">❤️</button>
+    </div>
+    
+    <div class="mini-note" id="miniNote">Kalbe dokun...</div>
+    
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="counter" id="counter">0 / 10</div>
+  </section>
+
+  <div class="black-heart" id="blackHeart" aria-hidden="true">
+    <div class="svg-container">
+      <div class="neon-aura"></div>
+      <span class="sparkle s1">✦</span>
+      <span class="sparkle s2">✧</span>
+      <span class="sparkle s3">✦</span>
+      <span class="sparkle s4">✧</span>
+      <span class="sparkle s5">✦</span>
+      <span class="sparkle s6">✧</span>
+
+      <svg viewBox="0 0 300 280" role="img" aria-label="Çizgisel kalp">
+        <path class="heart-outline"
+          d="M150 252
+             C126 229 31 164 31 91
+             C31 48 61 22 99 22
+             C124 22 143 37 150 58
+             C157 37 176 22 201 22
+             C239 22 269 48 269 91
+             C269 164 174 229 150 252 Z"/>
+        <path class="heart-inner-line"
+          d="M150 236
+             C129 216 44 157 44 92
+             C44 55 70 33 103 33
+             C125 33 142 46 150 65
+             C158 46 175 33 197 33
+             C230 33 256 55 256 92
+             C256 157 171 216 150 236 Z"/>
+      </svg>
+    </div>
+  </div>
+</main>
+
+<script>
+  const button = document.getElementById('tapHeart');
+  const heartWrapper = document.getElementById('heartWrapper');
+  const counter = document.getElementById('counter');
+  const progressBar = document.getElementById('progressBar');
+  const miniNote = document.getElementById('miniNote');
+  const intro = document.getElementById('intro');
+  const blackHeart = document.getElementById('blackHeart');
+  const stage = document.getElementById('stage');
+  const starsContainer = document.getElementById('stars');
+  const customCursor = document.getElementById('customCursor');
+
+  // --- MASAÜSTÜ ÖZEL KALP İMLECİ (MOBİLDE TAMAMEN DEVRE DIŞI) ---
+  const isFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+  let isTouchDevice = false;
+
+  // Dokunmatik etkileşim algılanırsa imleci kalıcı olarak gizle
+  window.addEventListener('touchstart', () => {
+    isTouchDevice = true;
+    customCursor.style.display = 'none';
+  }, { passive: true });
+
+  window.addEventListener('pointermove', (e) => {
+    if (isTouchDevice || e.pointerType !== 'mouse' || !isFinePointer.matches) return;
+    
+    customCursor.style.left = `${e.clientX}px`;
+    customCursor.style.top = `${e.clientY}px`;
+    if (!customCursor.classList.contains('visible')) {
+      customCursor.classList.add('visible');
+    }
+  }, { passive: true });
+
+  document.addEventListener('mouseleave', () => {
+    customCursor.classList.remove('visible');
+  });
+
+  window.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && !isTouchDevice) {
+      customCursor.classList.add('clicking');
+    }
+  }, { passive: true });
+
+  window.addEventListener('pointerup', () => {
+    customCursor.classList.remove('clicking');
+  }, { passive: true });
+  // -------------------------------------------------------------
+
+  const notes = [
+    "Biraz daha...",
+    "Kalbim hızlanıyor...",
+    "Her dokunuşun özel...",
+    "Devam et...",
+    "Yarısına geldik ✨",
+    "Gözlerin gibi parlıyor...",
+    "Çok az kaldı...",
+    "Neredeyse hazır...",
+    "Son bir dokunuş! ❤️",
+    "Sana özel..."
+  ];
+
+  // Arka plan yıldızlarını oluştur
+  for (let i = 0; i < 65; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    const size = Math.random() * 2.5 + 1;
+    star.style.width = `${size}px`;
+    star.style.height = `${size}px`;
+    star.style.left = `${Math.random() * 100}%`;
+    star.style.top = `${Math.random() * 100}%`;
+    star.style.setProperty('--dur', `${Math.random() * 3 + 2}s`);
+    star.style.setProperty('--delay', `${Math.random() * 3}s`);
+    starsContainer.appendChild(star);
+  }
+
+  let clicks = 0;
+  let finished = false;
+
+  function spawnFloatingHearts(x, y) {
+    const emojis = ['❤️', '💖', '✨', '💕', '🌸'];
+    for (let i = 0; i < 4; i++) {
+      const el = document.createElement('span');
+      el.className = 'floating-heart';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      
+      const tx = (Math.random() - 0.5) * 160;
+      const ty = -80 - Math.random() * 100;
+      const rot = (Math.random() - 0.5) * 60;
+      
+      el.style.setProperty('--tx', `${tx}px`);
+      el.style.setProperty('--ty', `${ty}px`);
+      el.style.setProperty('--rot', `${rot}deg`);
+      
+      stage.appendChild(el);
+      setTimeout(() => el.remove(), 1400);
+    }
+  }
+
+  button.addEventListener('click', (e) => {
+    if (finished) return;
+    clicks++;
+    
+    counter.textContent = `${clicks} / 10`;
+    progressBar.style.width = `${clicks * 10}%`;
+    miniNote.textContent = notes[clicks - 1];
+
+    const scale = 1 + (clicks * 0.025);
+    heartWrapper.style.transform = `scale(${scale})`;
+
+    const rect = button.getBoundingClientRect();
+    const x = e.clientX || (rect.left + rect.width / 2);
+    const y = e.clientY || (rect.top + rect.height / 2);
+    spawnFloatingHearts(x, y);
+
+    button.style.animation = 'none';
+    void button.offsetWidth;
+    button.style.animation = '';
+
+    if (clicks === 10) {
+      finished = true;
+      setTimeout(() => {
+        intro.classList.add('hide');
+        document.body.classList.add('fade-to-black');
+        setTimeout(() => blackHeart.classList.add('show'), 2200);
+      }, 400);
+    }
+  });
+</script>
+</body>
+</html>
